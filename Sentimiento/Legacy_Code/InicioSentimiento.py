@@ -2,41 +2,55 @@
 # ANÁLISIS DE SENTIMIENTO AVANZADO
 # ============================================
 import os
+
+from dotenv import load_dotenv
 import json
-import re
-from typing import Any, Dict, List, Union
-from LiteRTServerAPI import enviar_mensaje
 
-#Para buenos resultados usar el modelo Gemma 4 E4B it en LiteRTServerAPI.py
+from openai import OpenAI ## Faltaba
 
-def analizar_sentimiento_basico(texto: str) -> Dict[str, Any]:
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def analizar_sentimiento_basico(texto: str) -> dict:
     """Nivel básico: solo categoría"""
     
-    respuesta = enviar_mensaje("Analiza el sentimiento del texto. Responde SOLO con una palabra: positivo, negativo o neutral."
-                                 f"TEXTO: {texto}")
-
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": """
+            Analiza el sentimiento del texto. Responde SOLO con una palabra: positivo, negativo o neutral.
+            """},
+            {"role": "user", "content": texto}
+        ],
+        temperature=0.0
+    )
+    
     return {
         "nivel": "básico",
-        "sentimiento": respuesta,
+        "sentimiento": response.choices[0].message.content.strip(), # type: ignore
         "texto_original": texto[:100] + "..."
     }
 
-def analizar_sentimiento_intermedio(texto: str) -> Dict[str, Any]:
+def analizar_sentimiento_intermedio(texto: str) -> dict:
     """Nivel intermedio: polaridad, puntuación, emociones"""
     
-    respuesta = enviar_mensaje(
-            """
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": """
             Analiza el sentimiento del texto. Responde ÚNICAMENTE en formato JSON con:
             - sentimiento: positivo, negativo o neutral
             - polaridad: número entre -1 (muy negativo) y +1 (muy positivo)
             - emociones: objeto con puntuaciones para alegria, tristeza, enojo, sorpresa, miedo
             - intensidad: baja, media, alta
-            """
-            f"TEXTO: {texto}"
+            """},
+            {"role": "user", "content": texto}
+        ],
+        temperature=0.0
     )
     
     try:
-        resultado = json.loads(extraer_json(respuesta))
+        resultado = json.loads(response.choices[0].message.content) # type: ignore
         resultado["nivel"] = "intermedio"
         resultado["texto_original"] = texto[:100] + "..."
         return resultado
@@ -44,13 +58,16 @@ def analizar_sentimiento_intermedio(texto: str) -> Dict[str, Any]:
         return {
             "nivel": "intermedio",
             "error": "No se pudo parsear respuesta",
-            "respuesta_raw": respuesta
+            "respuesta_raw": response.choices[0].message.content
         }
 
-def analizar_sentimiento_avanzado(texto: str) -> Dict[str, Any]:
+def analizar_sentimiento_avanzado(texto: str) -> dict:
     """Nivel avanzado: con justificación y fragmentos relevantes"""
     
-    respuesta = enviar_mensaje("""
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": """
             Analiza el sentimiento del texto en profundidad. Responde ÚNICAMENTE en formato JSON con:
             - sentimiento_global: positivo, negativo o neutral
             - polaridad: número entre -1 y +1
@@ -58,12 +75,14 @@ def analizar_sentimiento_avanzado(texto: str) -> Dict[str, Any]:
             - justificacion: explicación del análisis
             - tonalidad: formal, coloquial, agresivo, entusiasta, etc.
             - recomendacion: qué acción tomar según el sentimiento
-            """
-            f"TEXTO: {texto}"
+            """},
+            {"role": "user", "content": texto}
+        ],
+        temperature=0.0
     )
     
     try:
-        resultado = json.loads(extraer_json(respuesta))
+        resultado = json.loads(response.choices[0].message.content) # type: ignore
         resultado["nivel"] = "avanzado"
         resultado["texto_original"] = texto[:100] + "..."
         return resultado
@@ -71,10 +90,10 @@ def analizar_sentimiento_avanzado(texto: str) -> Dict[str, Any]:
         return {
             "nivel": "avanzado",
             "error": "No se pudo parsear respuesta",
-            "respuesta_raw": respuesta
+            "respuesta_raw": response.choices[0].message.content
         }
 
-def analizar_sentimiento_multitexto(textos: List[str]) -> Dict[str, Any]:
+def analizar_sentimiento_multitexto(textos: list) -> list:
     """Analiza sentimiento de múltiples textos y calcula estadísticas"""
     
     resultados = []
@@ -96,13 +115,7 @@ def analizar_sentimiento_multitexto(textos: List[str]) -> Dict[str, Any]:
     return {
         "resultados_individuales": resultados,
         "estadisticas": estadisticas
-    }
-
-
-def extraer_json(texto: str) -> str:
-    # Busca cualquier cosa que esté entre llaves { ... }
-    match = re.search(r'(\{.*\})', texto, re.DOTALL)
-    return match.group(1) if match else texto
+    } # type: ignore
 
 # ========== DEMOSTRACIÓN ==========
 print("=" * 70)
@@ -139,24 +152,19 @@ reseñas = [
     "No me gustó, la calidad es mala"
 ]
 
-# Pylance ahora sabe que resultado_multiple es un Dict[str, Any]
-resultado_multiple: Dict[str, Any] = analizar_sentimiento_multitexto(reseñas)
+resultado_multiple = analizar_sentimiento_multitexto(reseñas)
 
 print("\n📈 ESTADÍSTICAS AGREGADAS:")
-# Acceso seguro a las claves
-stats = resultado_multiple.get('estadisticas', {})
-print(f"   Total de reseñas: {stats.get('total')}")
-print(f"   Positivas: {stats.get('positivos')}")
-print(f"   Negativas: {stats.get('negativos')}")
-print(f"   Neutrales: {stats.get('neutrales')}")
-print(f"   Polaridad promedio: {stats.get('polaridad_promedio', 0):.2f}")
+print(f"   Total de reseñas: {resultado_multiple['estadisticas']['total']}") # type: ignore
+print(f"   Positivas: {resultado_multiple['estadisticas']['positivos']}") # type: ignore
+print(f"   Negativas: {resultado_multiple['estadisticas']['negativos']}") # type: ignore
+print(f"   Neutrales: {resultado_multiple['estadisticas']['neutrales']}") # type: ignore
+print(f"   Polaridad promedio: {resultado_multiple['estadisticas']['polaridad_promedio']:.2f}") # type: ignore
 
 print("\n📋 RESEÑAS INDIVIDUALES:")
-individuales = resultado_multiple.get('resultados_individuales', [])
-for i, res in enumerate(individuales):
+for i, res in enumerate(resultado_multiple['resultados_individuales']): # type: ignore
     print(f"\n   Reseña {i+1}: {reseñas[i]}")
     print(f"   → Sentimiento: {res.get('sentimiento')} (polaridad: {res.get('polaridad', 'N/A')})")
-    emociones = res.get('emociones')
-    if emociones and isinstance(emociones, dict):
-        emocion_principal = max(emociones.items(), key=lambda x: x[1])
+    if res.get('emociones'):
+        emocion_principal = max(res['emociones'].items(), key=lambda x: x[1]) if res['emociones'] else ("ninguna", 0)
         print(f"   → Emoción principal: {emocion_principal[0]}")
