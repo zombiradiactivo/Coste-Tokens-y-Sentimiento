@@ -58,7 +58,7 @@ jobs:
         env:
           OPENAI_API_KEY: "ollama" # Clave simulada para tests
         run: |
-          pytest --cov=sentimiento tests/ --cov-report=xml
+          python -m pytest --cov=sentimiento Sentimiento/tests/ --cov-report=xml
 
       # 9. (Opcional) Subir reporte de cobertura
       - name: Subir artefactos de los tests

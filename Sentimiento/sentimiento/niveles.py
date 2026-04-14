@@ -5,8 +5,8 @@ import json
 def analizar(texto: str, nivel: str, provider_func) -> dict:
     prompts = {
         "basico": f"Analiza el sentimiento. Responde SOLO: positivo, negativo o neutral. TEXTO: {texto}",
-        "intermedio": f"Analiza el sentimiento. Responde ÚNICAMENTE JSON: {{sentimiento, polaridad (-1 a 1), emociones, intensidad}}. TEXTO: {texto}",
-        "avanzado": f"Analiza profundidad. Responde ÚNICAMENTE JSON: {{sentimiento_global, polaridad, fragmentos, justificacion, recomendacion}}. TEXTO: {texto}"
+        "intermedio": f"Analiza el sentimiento. Responde ÚNICAMENTE JSON: {{sentimiento (positivo, negativo o neutral), polaridad (negativo, neutral, alto, excelente), emociones, intensidad}}. TEXTO: {texto}",
+        "avanzado": f"Analiza profundidad. Responde ÚNICAMENTE JSON: {{sentimiento_global (positivo, negativo o neutral), polaridad (-1 a 1), fragmentos, justificacion, recomendacion}}. TEXTO: {texto}"
     }
     
     # Aquí provider_func puede ser enviar_mensaje (LiteRT) o una función que use OpenAI (Ollama)

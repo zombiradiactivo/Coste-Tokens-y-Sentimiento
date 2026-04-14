@@ -13,6 +13,9 @@ class AnalisisSentimientoGUI_XP:
         self.root = root
         self.root.title("Análisis de Sentimiento - Local")
         
+        self.root.geometry("800x700")
+        self.root.minsize(770, 600)
+
         self.analizar_fn = engine_func  # La función 'analizar' de niveles.py
         self.provider = provider        # El proveedor (LiteRT u Ollama)
 

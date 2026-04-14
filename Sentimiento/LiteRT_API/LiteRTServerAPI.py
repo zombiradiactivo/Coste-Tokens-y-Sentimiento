@@ -14,8 +14,8 @@ def enviar_mensaje(mensaje, model_id="gemma-4-E4B-it"):
     }
 
     try:
-        # Realizamos la petición POST
-        response = requests.post(url, data=payload)
+        # Realizamos la petición POST con timeout de 120 segundos
+        response = requests.post(url, data=payload, timeout=120)
         
         # Verificamos si la respuesta fue exitosa (código 200)
         response.raise_for_status()
