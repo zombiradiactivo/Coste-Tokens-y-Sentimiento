@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import threading
 import json
 import os
+import glob
 from datetime import datetime
 from almacenamiento.guardar import guardar_resultado
 
@@ -147,6 +148,25 @@ class AnalisisSentimientoGUI_XP:
         self.notebook.add(self.tab_just, text="💡 Justificación")
         self.txt_just = tk.Text(self.tab_just, font=('Tahoma', 9), wrap=tk.WORD)
         self.txt_just.pack(fill=tk.BOTH, expand=True)
+
+        # Tab 4: Historial
+        self.tab_hist = ttk.Frame(self.notebook, padding=5)
+        self.notebook.add(self.tab_hist, text="📜 Historial")
+        
+        # Treeview para mostrar lista de análisis guardados
+        cols_hist = ("fecha", "texto_resumido", "sentimiento")
+        self.tree_hist = ttk.Treeview(self.tab_hist, columns=cols_hist, show="headings", height=8)
+        for c in cols_hist:
+            self.tree_hist.heading(c, text=c.capitalize())
+            self.tree_hist.column(c, width=150 if c != "texto_resumido" else 300, anchor=tk.CENTER)
+        self.tree_hist.pack(fill=tk.BOTH, expand=True)
+        
+        # Botones para actions de historial
+        hist_btn_frame = ttk.Frame(self.tab_hist)
+        hist_btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(hist_btn_frame, text="📂 Cargar Historial", command=self.cargar_historial).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(hist_btn_frame, text="🗑️ Limpiar", command=self.limpiar_historial).pack(side=tk.LEFT)
+
         # --- SECCIÓN 5: LEYENDA (TÍTULO CLÁSICO) ---
         legend_frame = ttk.Frame(main_container)
         legend_frame.pack(fill=tk.X, anchor=tk.W, pady=(0, 5))
@@ -316,3 +336,41 @@ class AnalisisSentimientoGUI_XP:
             
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar: {str(e)}")
+
+    def cargar_historial(self):
+        """Carga los archivos JSON del directorio resultados/json/ y los muestra en la pestaña Historial."""
+        dir_json = "resultados/json"
+        if not os.path.exists(dir_json):
+            messagebox.showinfo("Historial", "No hay análisis guardados aún.")
+            return
+
+        for item in self.tree_hist.get_children():
+            self.tree_hist.delete(item)
+
+        archivos = sorted(glob.glob(os.path.join(dir_json, "*.json")), reverse=True)
+        
+        if not archivos:
+            messagebox.showinfo("Historial", "No hay análisis guardados.")
+            return
+
+        for archivo in archivos:
+            try:
+                with open(archivo, "r", encoding="utf-8") as f:
+                    datos = json.load(f)
+                
+                timestamp = datos.get("timestamp", "N/A")
+                texto = datos.get("texto_analizado", "")
+                texto_resumido = texto[:50] + "..." if len(texto) > 50 else texto
+                sent = datos.get("niveles", {}).get("basico", {}).get("sentimiento", "N/A")
+                
+                self.tree_hist.insert("", tk.END, values=(timestamp, texto_resumido, sent))
+            except Exception:
+                continue
+
+        self.lbl_status.config(text=f"Historial cargado: {len(archivos)} análisis.")
+
+    def limpiar_historial(self):
+        """Limpia la pestaña de historial."""
+        for item in self.tree_hist.get_children():
+            self.tree_hist.delete(item)
+        self.lbl_status.config(text="Historial limpiado.")
