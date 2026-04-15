@@ -1,6 +1,6 @@
 # EJEMPLO: Calculadora de costes de API
-import os
-from openai import OpenAI
+# import os
+# from openai import OpenAI
 import tiktoken
 
 

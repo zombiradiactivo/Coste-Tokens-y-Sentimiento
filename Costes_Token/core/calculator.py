@@ -26,7 +26,8 @@ class CalculadoraCostesLocal:
         try:
             encoding = tiktoken.encoding_for_model(self.modelo)
             return len(encoding.encode(texto))
-        except:
+        except Exception as e:
+            print(f"ERROR! {e}")
             return len(texto) // 4
 
     def calcular(self, t_in: int, t_out: int):
@@ -59,7 +60,8 @@ class CalculadoraCostes:
     def estimar_tokens(self, modelo: str, texto: str) -> int:
         try:
             return litellm.token_counter(model=modelo, text=texto)
-        except:
+        except Exception as e:
+            print(f"ERROR! {e}")
             return len(texto) // 4
 
     def calcular(self, modelo: str, t_in: int, t_out: int):
@@ -69,8 +71,9 @@ class CalculadoraCostes:
             # LiteLLM devuelve precios por 1000 tokens habitualmente
             price_in = info.get("input_cost_per_token", 0)
             price_out = info.get("output_cost_per_token", 0) 
-        except:
+        except Exception as e:
             # Fallback a precios genéricos si el modelo no se encuentra
+            print(f"ERROR! {e}")
             price_in, price_out = 0.00000015, 0.00000060
 
         coste_in = t_in * price_in # pyright: ignore[reportOperatorIssue]

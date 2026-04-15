@@ -1,0 +1,4 @@
+tiktoken
+litellm
+customtkinter
+pytest
